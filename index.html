@@ -1352,10 +1352,7 @@ function renderHistory() {
           <span>${w.date || formatWeekDate(w.week)}</span>
           <span>${w.count} players</span>
           ${w.assignments
-? `<span style="display:inline-flex;gap:6px;">
-              <button class="btn-ghost dark btn-sm" onclick="downloadTeeSheet(${i})">⬇ CSV</button>
-              <button class="btn-ghost dark btn-sm" onclick="copyTeeSheet(${i})">📋 Copy</button>
-            </span>`
+            ? `<button class="btn-ghost dark btn-sm" onclick="downloadTeeSheet(${i})">⬇ CSV</button>`
             : '<span style="color:var(--text-muted);font-size:11px">no data</span>'}
         </div>`
       ).join('')
@@ -2212,75 +2209,6 @@ function downloadTeeSheet(weekIndex) {
   a.click();
   document.body.removeChild(a);
   showToast(`Week ${w.week} tee sheet downloaded (CSV)`);
-}
-
-// ── COPY TEE SHEET TO CLIPBOARD ──────────────────────────────────────────
-function copyTeeSheet(weekIndex) {
-  const w = state.weeklyHistory[weekIndex];
-  if (!w || !w.assignments) { showToast('No tee sheet data for this week'); return; }
-
-  // Build a clean HTML table suitable for pasting into Mailchimp
-  const tableStyle = 'border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;';
-  const thStyle    = 'border:1px solid #999;padding:6px 12px;text-align:center;background:#e8f0eb;font-weight:bold;';
-  const tdStyle    = 'border:1px solid #999;padding:6px 12px;text-align:center;';
-  const titleStyle = 'border:1px solid #999;padding:8px 12px;text-align:center;font-weight:bold;font-size:16px;background:#e8f0eb;';
-
-  let html = `<table style="${tableStyle}">`;
-
-  // Title row
-  html += `<tr><td colspan="3" style="${titleStyle}">${weekLabel(w.week)} Tee Sheet</td></tr>`;
-
-  // Header row
-  html += `<tr>
-    <th style="${thStyle}">Time</th>
-    <th style="${thStyle}">Holes</th>
-    <th style="${thStyle}">Players</th>
-  </tr>`;
-
-  // Tee time rows
-  for (const slot of w.assignments) {
-    const t = TEE_TIMES[slot.si];
-    const names = slot.players.map(p => p.name + (p.carpool ? ` (CP${p.carpool})` : ''));
-    html += `<tr>
-      <td style="${tdStyle}">${t.label} AM</td>
-      <td style="${tdStyle}">${slot.players[0]?.holes || ''}</td>
-      <td style="${tdStyle}">${names[0] || ''}</td>
-    </tr>`;
-    for (let i = 1; i < names.length; i++) {
-      html += `<tr>
-        <td style="${tdStyle}"></td>
-        <td style="${tdStyle}"></td>
-        <td style="${tdStyle}">${names[i]}</td>
-      </tr>`;
-    }
-  }
-  html += '</table>';
-
-  // Use clipboard API with both HTML and plain-text fallback
-  const plainText = w.assignments.map(slot => {
-    const t = TEE_TIMES[slot.si];
-    const names = slot.players.map(p => p.name + (p.carpool ? ` (CP${p.carpool})` : ''));
-    return `${t.label} AM  |  ${slot.players[0]?.holes || ''}  |  ${names.join(', ')}`;
-  }).join('\n');
-
-  try {
-    const htmlBlob  = new Blob([html],      { type: 'text/html' });
-    const textBlob  = new Blob([plainText], { type: 'text/plain' });
-    const item      = new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
-    navigator.clipboard.write([item]).then(() => {
-      showToast('Tee sheet copied — paste into Mailchimp!');
-    }).catch(() => {
-      // Fallback: plain text only
-      navigator.clipboard.writeText(plainText).then(() => {
-        showToast('Copied as plain text (HTML not supported in this browser)');
-      });
-    });
-  } catch(e) {
-    // Last resort fallback
-    navigator.clipboard.writeText(plainText).then(() => {
-      showToast('Copied as plain text');
-    });
-  }
 }
 
 // ── Future Weeks ──────────────────────────────────────────────────────────
